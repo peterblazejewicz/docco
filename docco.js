@@ -23,15 +23,22 @@
         return fs.copy(file, path.join(config.output, path.basename(file)), callback);
       };
       complete = function() {
-        return copyAsset(config.css, function(error) {
-          if (error) {
-            return callback(error);
-          }
-          if (fs.existsSync(config["public"])) {
-            return copyAsset(config["public"], callback);
-          }
+        // copy stylesheet if defined
+        // else skip to next
+        if (config.css) {
+          return copyAsset(config.css, function(error) {
+            if (error) {
+              return callback(error);
+            }
+            if (fs.existsSync(config["public"])) {
+              return copyAsset(config["public"], callback);
+            }
+            return callback();
+          });  
+        } else {
           return callback();
-        });
+        }
+        
       };
       files = config.sources.slice();
       nextFile = function() {
@@ -146,7 +153,7 @@
     title = hasTitle ? first.text : path.basename(source);
     html = config.template({
       sources: config.sources,
-      css: path.basename(config.css),
+      css: (config.css) ? path.basename(config.css) : '',
       title: title,
       hasTitle: hasTitle,
       sections: sections,
@@ -172,9 +179,7 @@
     config = _.extend({}, defaults, _.pick.apply(_, [options].concat(__slice.call(_.keys(defaults)))));
     config.languages = buildMatchers(config.languages);
     if (options.template) {
-      if (!options.css) {
-        console.warn("docco: no stylesheet file specified");
-      }
+      // we do not warn on missing css file
       config.layout = null;
     } else {
       dir = config.layout = path.join(__dirname, 'resources', config.layout);
